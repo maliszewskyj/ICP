@@ -1,0 +1,64 @@
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+C     camac.cmn                                                               C
+C                                                                             C
+C     COMMON and VARIABLE declaration used for HARDWARE and INSTRUMENT para-  C
+C     meters used in hardware routines only.                                  C
+C     This part is used via an INCLUDE statement                              C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+
+	CHARACTER*2  camsp2
+
+C------------------ PARAMETERS USED IN CAMAC COMMUNICATION -------------------C
+
+      INTEGER*2  a0, a1, a9, a11, a2, a3, a4
+      INTEGER*2  f0, f1, f2, f9, f10, f11, f16, f17, f18, f19,
+     1	         f24,f25,f26,f27
+      INTEGER*2  null_data, crate, lamtype, priority
+      INTEGER*4  lgnumber, camtries
+      LOGICAL*1  qcheck,noqcheck
+
+      PARAMETER (a0  =  0,                       ! register no 0
+     1           a1  =  1,                       ! register no 1
+     1	         a2  =  2,
+     1	         a3  =  3,
+     2           a9  =  9,                        ! register 0 .and. 1
+     3           a11 =  11,                      ! special register function
+     3	         a4  =  4,			 ! for bira inh reset
+     4           f0  =  0,                       ! read group 1 register
+     1	         f1  =  1,
+     5           f2  =  2,                       ! read group 2 register
+     6           f9  =  9,                       ! clear group 1 register
+     7           f10 = 10,                       ! clear LAM
+     1           f11 = 11,
+     8           f16 = 16,                       ! write group 1 register
+     1           f17 = 17,
+     1           f18 = 18,
+     1           f19 = 19,
+     9           f24 = 24,                       ! disable
+     *           f25 = 25,
+     *           f26 = 26,                       ! enable
+     1           f27 = 27,                       ! check lam
+     2           null_data =  0,                 ! null_data        
+     3           crate     =  1,                 ! crate number
+     4           lamtype   =  0,
+     5           priority  = -1,
+     6           lgnumber  = 1073741823,         ! 2**30 -1 for loading preset
+     7           camtries  = 50,       !retry each camac command up to 50 times
+     8	         qcheck    = .true.,    !flag to  verify q in camac calls
+     9	         noqcheck  = .false.)   !flag to not verify q in camac calls
+
+      INTEGER*4 camstat(10)
+
+
+C---------- VARIABLES USED THROUGHOUT CAMAC COMMUNICATION ROUTINES -----------C
+
+      INTEGER*2 cachan                ! channel assigned to CAMAC in CAMAC_INIT
+      INTEGER*4 outreg(0:1)      ! contain current 24 bits for output reg 0 & 1
+      LOGICAL*4 inh_both1,inh_both2, enb_both1,enb_both2    !masks
+      INTEGER*4 crateid,inid,outid(0:1),dspid(0:3),monid(0:9),polid(0:4),
+     1	biralam(2),dsplam(2),routerid(0:3),histid(0:1)
+
+      COMMON /hdwcom/ cachan, camsp2,outreg, inh_both1, 
+     1	inh_both2, enb_both1,
+     1	 enb_both2,crateid,inid,outid,dspid,monid,biralam,dsplam,polid,
+     1	 routerid,histid

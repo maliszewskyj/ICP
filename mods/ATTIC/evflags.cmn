@@ -1,0 +1,2 @@
+	logical evflags(90)
+	common /events/evflags

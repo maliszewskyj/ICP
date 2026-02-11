@@ -1,0 +1,32 @@
+	include '../libs/compile_opts.h'
+	SUBROUTINE Run_Polar (typ, ibuf, qbuf, bbuf, polcfg, loop, keep)
+C	****************************************************
+C-----------------------------------------------------------------------------C
+C                                                                             C
+C    Routine Which Repeats A Point With A Different Flipper Configuration     C
+C    Called from: Run_I_Buf, Run_Q_Buf                                        C
+C                                                                             C
+C    Beat Schmid, January 1991                                                C
+C-----------------------------------------------------------------------------C
+	IMPLICIT      none
+	LOGICAL	      keep !true to keep data file
+	INTEGER*4     i, prf, accucnts(37), counts(37), state
+	INTEGER*4     loop, j, ee,m,kpsd
+	INTEGER*4     min, sec, qwtime(2), idx, typ, hsum
+	REAL*4        dsec, elap_time, mon, mpf, temp /0./, dummy,
+     1			ihf,hf,hfh,field,secdiff
+	CHARACTER*4   mt
+	CHARACTER*9   str9
+	CHARACTER*12   str12
+	CHARACTER*28  sys_time
+	CHARACTER*80  response,outpsd
+	LOGICAL	      monmag, prftemp, Readef, savepos
+	INCLUDE '../libs/smg_prep.cmn'                ! Common variable block
+	INCLUDE '../libs/instr.cmn'      ! Instrument and hardware parameters
+	INCLUDE '../libs/polar.cmn'              ! Pol params and definitions
+	INCLUDE '../libs/histo.cmn'              ! Position Sensitive Detector
+	INCLUDE '../libs/tc.cmn'     
+	INCLUDE '../libs/asd.cmn'           ! Area Sensitive Detector flag
+	INCLUDE '../libs/lia.cmn' !for prfpoint
+	REAL*4	posit(maxmots) !dummy used only for call to dmp_qpos
+	END

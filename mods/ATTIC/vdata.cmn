@@ -1,0 +1,2 @@
+	INTEGER*4      vhisto(256), nvhisto
+	common /vdata/ vhisto,nvhisto

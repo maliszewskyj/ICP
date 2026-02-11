@@ -1,0 +1,99 @@
+#!/bin/sh
+ECHO="echo"
+AR="/usr/bin/ar"
+
+$ECHO "           ***********************************************************"
+$ECHO "           * National Instruments GPIB-ENET                          *"
+$ECHO "           * NI-488.2M handler for Linux                             *"
+$ECHO "           * Ver 1.1                                                 *"
+$ECHO "           *                                                         *"
+$ECHO "           * Copyright (c) 1999 National Instruments Corp.           *"
+$ECHO "           * All rights reserved.                                    *"
+$ECHO "           ***********************************************************"
+$ECHO
+
+while : ; do
+	$ECHO -n "Do you want to continue with the installation? (y/n) :"
+	read answer
+	case "$answer" in
+	      N|n)	$ECHO; exit 1;;
+	      Y|y)	break;;
+		*)	$ECHO  "Please answer 'y' or 'n' ";
+			$ECHO;;
+	esac
+done
+
+s_user="`id -u`"
+if [ "$s_user" != 0 ]
+then
+	$ECHO
+	$ECHO "You must be logged in as \"root\" to run this installation program."
+	exit 1;
+fi
+
+if [ "`uname -s`" != Linux ]; then
+	$ECHO "Sorry, this version of GPIB-ENET is only for Linux systems."
+	exit 1
+fi
+machine="`uname -m`"
+$ECHO
+#Check if the machine is a SPARCstation or not
+case "$machine" in
+	i*86)	;;
+	*)	$ECHO;
+		$ECHO "Sorry, only Linux for x86 is currently supported.";
+		exit 1;;
+esac
+
+#Check if ugpib.h, cib.o, ibic, ibconf, ibtsta, gpibrc, IPassign, Update
+# are in the current directory
+$ECHO
+for file in ibconf  ibic  cib.o  ugpib.h  ibtsta  gpibrc IPassign Update; do
+    if [ ! -f $file ]; then
+         $ECHO "$file file does not exist in the current directory, exit installation script."
+	 exit 1
+    fi 
+done
+
+#Install the utility files
+$ECHO
+if [ ! -f /usr/local/include/sys/ugpib.h ]; then
+	$ECHO "Copying ugpib.h to /usr/local/include/sys/ugpib.h"
+	cp ugpib.h /usr/local/include/sys/ugpib.h
+fi
+
+$ECHO "Copying gpibrc to /etc/gpibrc"
+cp gpibrc /etc/gpibrc
+
+destpath=/usr/local/bin
+
+test -d $destpath || mkdir -p $destpath
+$ECHO "Copying ibic and ibtsta utilities to $destpath"
+cp ibic $destpath
+cp ibtsta $destpath
+$ECHO "Copying ibconf to $destpath/ibconfenet"
+cp ibconf $destpath/ibconfenet
+
+$ECHO
+$ECHO "Installing GPIB-ENET libraries in /usr/local/lib"
+
+$AR rv /usr/local/lib/libgpibmulti.a cibmulti.o > /dev/null
+$AR rv /usr/local/lib/libgpibenet.a cib.o > /dev/null
+cp libgpibenet.so /usr/local/lib
+test -f libgpibmulti.so && cp libgpibmulti.so /usr/local/lib
+
+$ECHO
+$ECHO "The software installation procedure is complete."
+$ECHO "Run 'ibconfenet' to assign system GPIB devices to GPIB-ENET boxes on"
+$ECHO "your network."
+$ECHO
+$ECHO "If you have received this software as an update for your current"
+$ECHO "GPIB-ENET box, you will need to update the firmware in the"
+$ECHO "GPIB-ENET box.  For the update procedure, please read the"
+$ECHO "\"Update the GPIB-ENET Firmware\" section under the"
+$ECHO "\"Software Installation and Configuration\" chapter in the"
+$ECHO "getting started manual."
+$ECHO
+
+exit 0
+

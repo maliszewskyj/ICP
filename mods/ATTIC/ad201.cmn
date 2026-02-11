@@ -1,0 +1,15 @@
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+C     ad201.cmn:   AD201 serial device on BT8                                 C
+C                                                                             C
+C     This part is used via an INCLUDE statement                              C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+
+	INTEGER*4  ad2point
+	INTEGER*4  maxad2
+	PARAMETER  (maxad2 = 30)
+
+	INTEGER*4  adnumchan,chanarr(6)
+	real*4  advolts(6,maxad2)
+	character*12 ad2file
+
+	COMMON/ad201/ad2point,adnumchan,chanarr,ad2file,advolts

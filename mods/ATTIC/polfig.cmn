@@ -1,0 +1,26 @@
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+C     POLFIG.cmn:                                                             C
+C                                                                             C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+
+	integer*4 maxpols
+	parameter (maxpols=100)
+
+	STRUCTURE /P_buf/
+	   CHARACTER*50 com !comment
+	   CHARACTER*50 INFILE
+	   CHARACTER*5  outname
+	   REAL         hf 
+	   REAL         tmp , th 
+	   REAL         mon 
+	   CHARACTER*4  mt
+	END STRUCTURE
+C	RECORD/p_buf/pbuf
+
+C  Variables unique to polfig buffer
+	integer*4 iph(maxpols),ipk(maxpols),ipl(maxpols),mpre(maxpols),
+     1	  numscan,mlist(4)/4,3,8,7/ !order in which motors are moved
+	real*4 tth(maxpols),memposit(4) !motor order is 4,3,8,7
+	integer*4 ispeed, npol
+	common /polfig/ iph,ipk,ipl,mpre,numscan,tth,ispeed,npol,
+     1	  memposit,mlist

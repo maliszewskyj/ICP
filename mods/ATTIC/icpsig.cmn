@@ -1,0 +1,2 @@
+        integer sigint, sigquit, sigtstp, sigterm
+        COMMON/ICPSIG/ sigint,sigquit,sigtstp, sigterm

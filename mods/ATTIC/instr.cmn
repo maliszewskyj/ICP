@@ -1,0 +1,165 @@
+
+C     instr.cmn:                                                              C
+C                                                                             C
+C     COMMON and VARIABLE declaration used for HARDWARE and INSTRUMENT para-  C
+C     meters.                                                                 C
+C     This part is used via an INCLUDE statement                              C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+
+
+	CHARACTER*35 header                      ! header for program
+	CHARACTER*1  insp1, insp1b
+	CHARACTER*2  insp2
+	CHARACTER*3  insp3
+	INTEGER*2    nsta                        ! station number
+	INTEGER*2    mots                        ! number of motors
+	INTEGER*2    mon_add                     ! address of down-count module
+	INTEGER*2    scl                         ! number of scalers
+	INTEGER*2    scl_add                     ! address of 1. scaler module
+	INTEGER*2    scl_chn                     ! number of first scaler
+	INTEGER*2    input_add                   ! address of input module
+	INTEGER*2    misc_switches               ! bit nos. used for misc. sws.
+	INTEGER*2    sw_add                      ! address of IO-register module
+	INTEGER*2    sw_reg                      ! IO register used by instrum.
+	INTEGER*2    sw_mon_bit                  ! bit no. of mon inhibit line
+	INTEGER*2    sw_scl_bit                  ! bit no. of scl inhibit line
+	INTEGER*2    sw_relays                   ! bit nos. used for relays
+	INTEGER*2    pols                        ! number of power supplies
+	INTEGER*2    pol_add                     ! camac address of GPIB interf
+	INTEGER*2    pol_chn                     ! number of first power supply
+	INTEGER*2    histo_add			 ! Camac add of LC histo (or 0 if none)
+	INTEGER*2    sw_histo_bit		 ! bit no. to NIM module for histo control
+	INTEGER*2    rout_add			 ! CAMAC add of LC router
+	INTEGER*4    mot_line                    ! RS232-line for mot-control
+C						   1=ACS, 2=PC, 3=Focus
+	INTEGER*4    tmp_line                    ! RS232-line for temp-control
+	INTEGER*4    mag_line			 ! RS232/GPIB-ID for magnet-control
+	INTEGER*4    term_line			 ! RS232-line for priv terminal
+	CHARACTER*5  monobt1			 ! bt1 mon used: cu311,cu220,si531
+	INTEGER*4    base, ramp, top, pulse      ! dynamic motor parameters
+	INTEGER*4    back, merr                  !           "
+	INTEGER*4    mottype			 ! type of motor controller
+	REAL*4	     vmot1			 ! mot var (H+ for type 3)
+	REAL*4	     vmot2			 ! mot var (H- for type 3)
+	REAL*4	     vmot3			 ! mot var (address for type 3)
+	REAL*4	     vmot4   			 ! mot var (pos for type 3)
+	INTEGER*4    collim                      ! collimation comment
+	INTEGER*4    mosaic                      ! mosaic comment
+	INTEGER*4    def_ver                     ! default file version	
+	CHARACTER*7  terminal                    ! terminal line
+	CHARACTER*12 logname                     ! filename based on date
+	REAL*4       dm, da                      ! monochr & analyzer d-spacing
+	REAL*4       z, ul, ll                   ! zeropoints, up & lw limits
+	REAL*4       eff, zp                     ! efficencies & zeros for BT1
+	REAL*4       wavel                       ! wavelength in Å
+	REAL*4	     rkpos1, rkpos2	         ! position for rocking
+	INTEGER*4    rkmot			 ! motor to rock during count
+	
+
+	INTEGER*4 maxmots			 ! Maximum number of motors
+	PARAMETER (maxmots = 30)
+
+	INTEGER*4 maxtypes			 ! Maximum number of motor types
+	PARAMETER (maxtypes = 8)
+	INTEGER*4 ACS,PC,ACSF,XPROM,DF,VIRT,NOTYETVM,PIMOT,VME,ZETA,EZ,PICO
+	PARAMETER (ACS = 1)       !standard Adv Contr Systs motor controller
+	PARAMETER (PC  = 2)       !Compumotor run via PC
+	PARAMETER (ACSF = 3)      !focusing motor on spins
+	PARAMETER (XPROM = 4)     !xray motr
+	PARAMETER (DF = 5)        !Drabkin flipper on NG5
+	PARAMETER (VIRT = 6)      !virtmot
+	PARAMETER (NOTYETVM = -6) !uninitialized virtual motor
+	PARAMETER (PIMOT = 8)     !Physik Instrumente Motor
+	PARAMETER (VME = 9)       !VME based OMS58
+	PARAMETER (ZETA = 10)     !Parker Compumotor
+	PARAMETER (EZ=11)         !Allmotion EZ stepper
+	PARAMETER (PICO=12)       !Newfocus Pico 87xx motor control
+
+	COMMON /instr/ header, insp1,
+	1       nsta, mots, mon_add, scl, scl_add, scl_chn, input_add,
+	2	misc_switches(5), sw_add, sw_reg, sw_mon_bit, sw_scl_bit, 
+	3    	sw_relays(5), pols, pol_add, pol_chn, histo_add,sw_histo_bit,
+     1		rout_add, insp2, mot_line(maxtypes),tmp_line, 
+	4       logname, mottype(maxmots), vmot1(maxmots), 
+     1	        vmot2(maxmots), vmot3(maxmots), 
+	5	vmot4(maxmots), base(maxmots), 
+     1	        ramp(maxmots), top(maxmots), pulse(maxmots), 
+	6	back(maxmots), merr(maxmots), 
+     1	        collim(4), mosaic(3), def_ver, terminal, insp1b,
+	7	dm, da, z(maxmots), ul(maxmots), ll(maxmots), eff(32), 
+     1	        zp(32), wavel, mag_line, term_line, monobt1,
+     1		insp3,rkpos1, rkpos2, rkmot
+
+
+	LOGICAL     priv                  ! .TRUE. when TX or OP terminal
+	LOGICAL     super                 ! .TRUE. when super privs set
+	LOGICAL     counting              ! set when counting
+	LOGICAL     t_count               ! set when counting with time
+	LOGICAL     m_count               ! set when counting with monitor
+	LOGICAL     file                  ! set if data storage enabled
+	LOGICAL     statistic             ! set if statistics check enabled
+	LOGICAL     polar                 ! set if polarized beam
+	LOGICAL	    psd			  ! set if position sensitive dect on bt7
+	LOGICAL     tempctr               ! set if temperature control enabled
+	LOGICAL     magnctr               ! set if magnet control enabled
+	LOGICAL	    focus5		  ! using focusing motors on ng5
+	LOGICAL     fixed                 ! set if a motor shall not move
+	LOGICAL     makelog               ! allow creation of a logfile
+	LOGICAL     motfl                 ! motor mask
+	LOGICAL     polfl                 ! power supply mask
+	LOGICAL     rockfl                ! set if motor rocks while counting
+	INTEGER*4   timer_id              ! Timer request number
+	INTEGER*4   camerr                ! Number in local event flag cluster
+	INTEGER*4   hdw_event             ! Number in local event flag cluster
+	INTEGER*4   contr_a               ! Number in local event flag cluster
+	INTEGER*4   stop                  ! Number in common event flag cluster
+	INTEGER*4   pause                 ! Number in common event flag cluster
+	CHARACTER*28 start_time           ! Start-time in monitor-counts
+	CHARACTER*28 stop_time            ! End-time in monitor-counts
+	LOGICAL     verbose_run           ! set if extra info during buffer exe
+
+
+	STRUCTURE /tmpdev/
+	   INTEGER*4    cfg , mot 
+	END STRUCTURE	
+
+	RECORD /tmpdev/ tdev		  ! Temp device flags
+
+	COMMON /flags/ priv, counting, t_count, m_count, file, statistic, 
+	1	polar, psd, magnctr,tempctr, focus5, 
+     1		fixed(maxmots), motfl(maxmots),
+     1     	timer_id, hdw_event, 
+	2       contr_a, stop, pause, camerr, start_time, stop_time, tdev, 
+	3	polfl(8), makelog, rockfl, super, verbose_run
+
+	INTEGER*4 nbuf			  ! Number of buffers
+	PARAMETER (nbuf = 30)
+
+C  Define length of records in direct access files
+	INTEGER*4 qbuf_recl,bbuf_recl,ibuf_recl,rbuf_recl,tbuf_recl,
+     1			motbuf_recl,fmotbuf_recl,logbuf_recl,stat_recl
+
+	PARAMETER (qbuf_recl = 320)
+	PARAMETER (tbuf_recl = 320)
+	PARAMETER (rbuf_recl = 320)
+	PARAMETER (bbuf_recl = 320)
+	PARAMETER (ibuf_recl = 320)
+	PARAMETER (motbuf_recl = 160)
+	PARAMETER (fmotbuf_recl = 160)
+	PARAMETER (logbuf_recl = 320)
+	PARAMETER (stat_recl = 80)
+
+C  More common variables
+	LOGICAL	autolim, !if true, bt1 motor 4 limits & scan range set for mono
+     1		finishup, !ctrle sets to true. current point in buffer to be last
+     1		clrstat !redo status line
+	INTEGER*4 startsecs,stopsecs !time when prep mode entered
+	INTEGER*4 system_type, dec, linux
+	REAL*4 duration
+	PARAMETER (dec=1)
+	PARAMETER (linux=2)
+	LOGICAL  vmedata,trashmode,trashmove,trackmoves,amscaler,gpibenet,aimpsd
+	CHARACTER*12 cfgdir
+	COMMON/instrb/autolim, finishup, clrstat, startsecs,stopsecs,
+     1	     system_type, vmedata, trashmode, trashmove, trackmoves, 
+     1	     cfgdir, amscaler, gpibenet, aimpsd, duration

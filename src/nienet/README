@@ -1,0 +1,224 @@
+NI-488.2M GPIB-ENET, GPIB-ENET/100 Driver for Linux/x86 2.0.x, 2.2.x and 2.4.x
+May 2001 Release Notes (Version 1.2beta)
+Copyright 1999 National Instruments Corporation.
+All Rights Reserved.
+
+Note: This driver version is essentially identical to version 1.1beta. The only difference is the addition of two utilities namely the EthernetConfig and the FirmwareUpdate. These utilities are meant specifically for the GPIB-ENET/100 hardware. Minimal testing has been done with this driver on Linux kernel version 2.4.4 under SuSe linux
+
+This file contains descriptions for new configuration information and new
+functions not found in the "NI-488.2M Software Reference Manual."
+
+
+1. The ENET driver is now available as a shared library.  During the
+   installation of the driver, this file, libgpibenet.so, gets copied to the
+   /usr/local/lib directory, by default.  Linking a shared library to your
+   application will reduce the file size of your executable.  Morover, a
+   dynamic linked library will ease the transition to future driver releases.
+   However, if you do not wish to use the shared library, the statically linked
+   cib.o file is also available.
+
+2. CONFIGURATION ITEMS NOT DESCRIBED IN THE 
+   "NI-488.2M SOFTWARE REFERENCE MANUAL"
+   
+   A. CREATING A NEW /etc/gpibrc FILE TO SUPPORT MORE BOARDS AND DEVICES
+
+      Using ibconf, it is now possible to create a new gpibrc file that will
+      allow NI-488.2M to access up to 128 boards and 128 devices.  Please
+      use the following steps in creating a new /etc/gpibrc file.
+      NOTE: You must have superuser privileges to do the following: 
+
+      1.  Make a backup copy of the current /etc/gpibrc in a different
+          directory and delete the /etc/gpibrc file.
+
+      2.  Execute ibconf with the following options.
+
+          ibconf -b Nboards -d Ndevices
+
+      
+          Where: Nboards  = Number of boards to support in the
+                            NEW configuration file. 
+                            (Default = 8, Min = 1, Max = 128)
+
+                 Ndevices = Number of devices to support in the
+                            NEW configuration file. 
+                            (default = 44, Min = 44, Max = 128)
+          
+      3.  Press 'y' when ibconf prompts you to create the new file.
+
+      4.  You may now edit the ibconf file to suit your application.
+
+      Note: Ibconf will only edit the first 44 devices,
+            all other devices will only be configurable
+            during run-time using ibfind(),ibconfig() or
+            ibdev(),ibconfig(). (see software reference manual)
+
+   B. USING DIFFERENT ALIAS NAMES IN THE /etc/hosts FILE
+
+      You can use an alias name other than "gpib0" in the /etc/hosts file.
+      If you want to use a different name, you must also change the hostname 
+      of the box using ibconf.  The hostname in ibconf is shown under the 
+      board(box) name at the top of the device map.  Use the rename function 
+      to change the hostname in ibconf.  The following diagram shows the top of 
+      the ibconf screen and the location of the hostname for the current board.
+
+===============================================================================
+National Instruments  |    Device map for board gpib0    |   SPARCstation
+===============================================================================
+         -----------                              ^
+         | gpib0   |  <---board(box) name---------|
+     ----| gpib0   |  <---hostname
+     |   |_________|  
+     | 
+
+
+
+      NOTE: You must update the /etc/hosts file to reflect the new hostname
+            alias in ibconf.
+
+
+3. DESCRIPTION OF THE NEW IPsetup UTILITY.
+
+   A new GPIB-ENET configuration utility is included with this distribution 
+   of NI-488.2M.  The new utility configures subnet information in a GPIB-ENET.
+   The following describes the utility and the appropriate place in the
+   installation sequence to use the utility.
+      
+   During the configuration of the hardware, the following step should be added
+   after the GPIB-ENET is powered on the for the first time.
+
+        Before the GPIB-ENET is fully functional, you should configure it 
+        with proper subnet information.  Your GPIB-ENET may work properly 
+        even if you skip this step, but National Instruments recommends 
+        that you configure information about the subnet.  This information 
+        includes the broadcast IP address and netmask to use on the subnet
+        and up to four router IP addresses.  Refer to the IPsetup Utility
+        description below, and run the IPsetup utility.
+
+   IPsetup Utility
+   ---------------
+
+   Use the IPsetup utility to configure the IP characteristics of the 
+   specified GPIB-ENET.  The IP characteristics include the following:  
+   
+        *  Broadcast IP address - used by an IP device when a packet must 
+           go to all devices on the local subnet. 
+ 
+        *  Netmask of the local subnet - used by an IP device to determine 
+           if the destination of an out-going packet is local (that is, on 
+           the same subnet).  If the destination is local, no routing is 
+           required.  If the destination is not local, routing is required.  
+
+        *  List of router IP addresses - used when an IP device determines 
+           that the destination of a packet is not on the local subnet.  If
+           routing is required, the best route is chosen dynamically.  Up 
+           to four default routers can be specified.
+
+   NOTE: You should not run this utility without assistance from your network
+         administrator.
+
+   The following steps describe how to configure the IP characteristics:
+   1. Power off the GPIB-ENET, and set DIP switch 7 to the ON position.
+   2. Power on the GPIB-ENET and wait for the READY LED to remain steady.
+   3. Run IPsetup.  This utility takes no command line parameters.  All 
+      necessary information is obtained during execution.
+   4. Enter the appropriate information as it is requested.  For additional
+      information about each piece of information requested, enter a single
+      question mark (?).  
+   5. Power off the GPIB-ENET, and return DIP switch 7 to the OFF position.
+   6. Power on the GPIB-ENET and wait for the READY LED to remain steady.	
+
+
+4. NEW FUNCTIONS NOT DESCRIBED IN THE "NI-488.2M SOFTWARE REFERENCE MANUAL"
+
+   SUMMARY OF NEW FUNCTIONS
+
+	int	iblock(int bd);   /* Lock access to a board or device */
+	int	ibunlock(int bd); /* Release a lock to a board or device */
+
+   DESCRIPTION OF NEW FUNCTIONS
+
+
+   IBLOCK()
+   -------------------------------------------------------------------- 
+   Purpose
+
+	Lock access to a board or device.
+
+   Syntax
+	
+	#include <sys/ugpib.h>
+	iblock(bd)
+	int	bd;
+
+   Description
+	
+	bd is a board or device descriptor returned from a call to
+	ibfind or ibdev. 
+
+	iblock is used to obtain exclusive access to a GPIB interface 
+	board or device.  
+	
+	If iblock is called with a board descriptor, it blocks other 
+	processes that try to use this board until you release the board
+	by using the ibunlock function.  In addition to blocking
+	other processes, iblock blocks other device calls that are associated 
+	with the locked board until the board is released using ibunlock.
+
+	If iblock is called with a device descriptor, it blocks other
+	processes that try to access the same device until the device is 
+	released using the ibunlock function.
+
+	In general, you should use iblock and ibunlock to gain critical 
+	access to a board or device for multiple NI-488.2M calls.  The 
+	NI-488.2M language interface guarantees that each NI-488.2M call 
+	can complete without interruption from NI-488.2M calls from other 
+	processes.
+	
+   Examples
+	
+	1.  To block all device calls to a board and block board
+	    calls from other processes while performing critical board
+	    calls: 
+
+		board = ibfind("gpib0");
+		iblock(board);
+
+		....critical NI-488.2M board calls....
+
+		ibunlock(board);
+
+	2.  To block access to a device from other processes while
+	    performing critical device calls:
+
+		device = ibfind("dev1");
+		iblock(device);
+
+		....critical NI-488.2M device calls....
+		
+		ibunlock(device);
+
+	
+   IBUNLOCK()
+   -------------------------------------------------------------------- 
+   Purpose
+
+	Release a lock to a board or device.
+
+   Syntax
+	
+	#include <sys/ugpib.h>
+	ibunlock(bd)
+	int	bd;
+
+   Description
+	
+	bd is a board or device descriptor returned from a call to
+	ibfind or ibdev.
+
+	ibunlock is used to release a lock on a board or device
+	descriptor that had previously been locked with the iblock
+	function.
+
+   Examples
+
+	See examples in IBLOCK() description.

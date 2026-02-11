@@ -1,0 +1,15 @@
+XRAY Instrument Control Program
+ 0     2      8    2     9      0       3     6,7,8,9,10
+sta#,#mots,mon_ad,#scl,#1_ad,scl_chn,inp_add,misc_switches,
+  1      1        26      28,29,30,31,32       27
+io_ad,io_sw_reg,io_mon_b,sw_relays(1 thru 5), io_s_b
+   3         1         0      0      0       0 0 0 0 0 0
+acs_mot_line,tmp_line,#pol_ps,gpib_ad,#1_ad,types (1...#pol_ps)
+1       	3		0		2
+term_line,	mag_line 	PC_motor_line   XRAY_Prom_line
+M   Base Ramp    Top  Pulses/Deg  Backlash  Err  Type  SpcH+  SpcH-    SpcAddr
+3     20    1    500         400       100    0     1      0      0       0
+4     20    1    500         400       100    0     1      0      0       0
+7    100    1    500          40         5    0     1      0      0       0
+8    100    1    500         160        20    0     1      0      0       0
+

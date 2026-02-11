@@ -1,0 +1,22 @@
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+C     polar.cmn:                                                              C
+C                                                                             C
+C     COMMON and VARIABLE declaration used for power supply definitions       C
+C     This part is used via an INCLUDE statement                              C
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
+	MODULE polar
+	INTEGER*2    poltype(8)                             ! power sypply type
+	REAL*4	     fullamp(8)    ! convers. const for BT-2
+	REAL*4       upperI(8)            !software upper limit for I
+	REAL*4       currentI(8)          !last value of I written to ps
+	TYPE flipper_current
+	   REAL*4     cur , engy 
+	END TYPE
+	TYPE(flipper_current) F_on(8)
+	END MODULE polar
+
+	TYPE polarize
+	   CHARACTER*12   fname
+	   INTEGER*4      csec
+	   INTEGER*4      idx
+	END TYPE

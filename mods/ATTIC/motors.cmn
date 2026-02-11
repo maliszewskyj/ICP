@@ -1,0 +1,9 @@
+	MODULE mccom
+	logical*1   moving(maxmots)
+	logical*1   overshot(maxmots)
+	real*4      destination(maxmots)
+	integer*2   mcchan(maxtypes) !channels assigned to motor controllers
+	integer*4   motor_wait_time(2)
+	character*2 motorstring(maxmots)
+	logical	    noback !no backlash correction
+	END MODULE mccom

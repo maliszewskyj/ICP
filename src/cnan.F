@@ -1,0 +1,18 @@
+	SUBROUTINE CNAN
+	use fndlam
+C       DETERMINE MAX COUNT AND ANGLE    
+	IMAX(K)=ICOUNS(K,1)      
+	JMAX(K)=1  
+	THEMAX(K)=ANGL(K,1)     
+	IMIN(K)=ICOUNS(K,1)      
+	DO 150 J=2,13     
+	   IF(IMAX(K)-ICOUNS(K,J)) 141,140,140    
+ 141	   IMAX(K)=ICOUNS(K,J)      
+	   THEMAX(K)=ANGL(K,J)     
+	   JMAX(K)=J  
+	   GO TO 150
+ 140	   IF(IMIN(K)-ICOUNS(K,J)) 150,150,151    
+ 151	   IMIN(K)=ICOUNS(K,J)      
+ 150	CONTINUE   
+	RETURN
+	END
