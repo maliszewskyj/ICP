@@ -44,7 +44,7 @@ C=============================================================================C
 
 C------------------------------ INITIALIZATION -------------------------------C
 
-	version = 'Version 29 -- Nov 2020 (the year to forget)'
+	version = 'Version 30 -- Feb 2026 (R2SO)'
 
 	CALL DEBUGLEVEL(0)
 	IF (iargc() .gt. 0) THEN

@@ -30,6 +30,8 @@
 
 #define BT1SHUTPORT "/dev/ttyS0"
 #define BT1SHUTBAUD 300
+#define EXTFREQ     1000
+
 
 extern RS232PARM rs232_cnf[NUMRS232];
 extern int debug;
@@ -130,15 +132,17 @@ void VSCALERSTART(int * preset, int * mode)
   short lcmd, lresp;
   int retn;
   char mono[6];
+  int pcts;
 
-  if (nsta == 1) {
-    /* Make sure we select the monitor associated 
+      /* Make sure we select the monitor associated 
        with the current monochromator. */
+  /*
+  if (nsta == 1) {
     sprintf(cmd,"scaler select %d",whichmon);
     lcmd = (short) strlen(cmd);
     retn = RS232V(cmd,&lcmd,response,&lresp);
   }
-
+  */
 
   /*
    * Count for time:    mode = 0
@@ -146,10 +150,20 @@ void VSCALERSTART(int * preset, int * mode)
    */
   ctrmode = (*mode!=0) ? 1 : 0;
   if (ctrmode) {
-    sprintf(cmd,"scaler monitor %d",*preset);
+    pcts = *preset;
+    //sprintf(cmd,"scaler monitor %d",*preset);
+    // For BT1 need to specify which monitor we use
+    sprintf(cmd,"scaler preset %d %d",whichmon+1,pcts);
   } else {
-    sprintf(cmd,"scaler time %d",*preset);
+    //sprintf(cmd,"scaler time %d",*preset);
+    pcts = *preset * EXTFREQ;
+    sprintf(cmd,"scaler preset 0 %d",pcts);
   }
+  lcmd = (short) strlen(cmd);
+  retn = RS232V(cmd,&lcmd,response,&lresp);
+  // Check for OK
+  
+  sprintf(cmd,"scaler arm");
   lcmd = (short) strlen(cmd);
   retn = RS232V(cmd,&lcmd,response,&lresp);
   /* Should really do some error handling here */
@@ -272,6 +286,7 @@ void VSCALERREAD(float * seconds, int * counts)
   ctr = strtol(ptr,&ptr2,0);
   ptr = ptr2;
   ticks = (int) ctr;
+  *seconds = ticks * EXTFREQ;
 
   i = 0;
   sum = 0;
@@ -340,6 +355,7 @@ void VSCALERREAD(float * seconds, int * counts)
   }
 
   /* Now retrieve elapsed time */
+  /* 
   sprintf(cmd,"scaler elapsed");
   lcmd = (short) strlen(cmd);
   lresp = 0;
@@ -350,6 +366,7 @@ void VSCALERREAD(float * seconds, int * counts)
   ptr++;
   // *seconds = strtof(ptr,&ptr2);
   *seconds = atof(ptr);
+  */
 }
 
 void VPARPORT(int * inval)
