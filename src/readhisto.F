@@ -43,6 +43,9 @@ C--------Be sure histo and router are disabled if using tdboard---------
             IF (nsta .eq. -11) THEN
                asd_xdim = 512
                asd_ydim = 512
+            ELSE IF (nsta .eq. 8) THEN
+               asd_xdim = 960
+               asd_ydim = 20
             ELSE
                retn = AIM_DIMS(asd_xdim, asd_ydim) ! Get size of histogram to transfer
             ENDIF

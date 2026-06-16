@@ -92,6 +92,8 @@ c       instr.cmn
 	trashmode = .FALSE.
 	gpibenet = .FALSE.
 	aimpsd = .FALSE.
+	private = .FALSE.
+	dmpscl  = .FALSE.
 c       polar.cmn:
 	do i = 1,6		!for polar.cmn
 	   fullamp(i) = 6.
@@ -127,6 +129,9 @@ c       tc.cmn
 	fieldmax = 90.
 	fieldlast = -999.
 
+c       histo.cmn
+	nocells = 256
+
 c       asd.cmn
 	fpwindow = 0.0
 
@@ -161,7 +166,7 @@ C-----------------READ INSTRUMENT AND HARDWARE PARAMETERS -------------------C
 	5    (poltype(i), i = pol_chn, pol_chn + pols - 1) ! defines type of power supply
 	READ (1, FMT= '(a1)') dummy      
 
-  	IF (nsta.eq.-7 .OR. nsta .EQ. -1.OR.nsta.eq.8)then
+  	IF (nsta.eq.-7 .OR. nsta.eq.8)then
 	   READ (1, FMT= *) histo_add, ! CAMAC address for LC histo module
 	1	rout_add,	! CAMAC address for LC router module
 	2	sw_histo_bit	! BIT in output strip to NIM module for histo control
@@ -200,16 +205,41 @@ C-----------------READ INSTRUMENT AND HARDWARE PARAMETERS -------------------C
 	4    (nsta .eq. -11)) then
 	   vmedata = .true.
  	endif
-	IF ((nsta.eq.7).or.(nsta.eq.0)
-	1    .or.(nsta.eq.2)) THEN
-	   amscaler = .true.
+	IF (nsta .eq. 5) then
+	   dmpscl = .true.
 	ENDIF
-	IF (nsta.eq.-1.or.nsta.eq.-11.or.nsta.eq.8.or.nsta.eq.-7) then
+	IF (nsta.eq.-1.or.nsta.eq.-11.or.nsta.eq.8.or.nsta.eq.-7.or.nsta.eq.-5) then
 	   aimpsd = .true.
+	ENDIF
+	IF (nsta.eq.8) then
+	   USE_ASD= .true.
 	ENDIF
 	IF (nsta.eq.-5) then
 	   gpibenet = .true.
+	   nocells = 64
 	ENDIF
+
+	IF (nsta .eq. 0) then
+	   extension(1:3) = 'xr0'
+	else if (nsta .eq. 1) then
+	   extension(1:3) = 'bt1'
+	else if (nsta .eq. 4) then
+	   extension(1:3) = 'bt4'
+	else if (nsta .eq. 5) then
+	   extension(1:3) = 'bt5'
+	else if (nsta .eq. 8) then
+	   extension(1:3) = 'bt8'
+	else if (nsta .eq. -7) then
+	   extension(1:3) = 'ng7'
+	else if (nsta .eq. -5) then
+	   extension(1:3) = 'ng5'
+	else if (nsta .eq. -1) then
+	   extension(1:3) = 'ngd'
+	else if (nsta .eq. -11) then
+	   extension(1:3) = 'cgd'
+	else
+	   extension(1:3) = 'icp' ! Need a sensible default extension
+	end if
 
 	negqpos = .FALSE.	!in case it is not in motors.buf yet
 C--------------------------CHECK FOR MOTORS.BUF -----------------------------C
@@ -305,6 +335,15 @@ C----------READ PARAMETERS, ZEROS AND LIMITS FOR MOTORS AND FLAGS -----------C
 	ELSE
 	   autolim = .FALSE.
 	ENDIF
+	IF (nsta.eq.8) then
+	   psd=.false.
+	   use_asd=.true.
+	   nocells = 960
+	   asd_xdim = 960
+	   asd_ydim = 20
+	ENDIF
+
+
 	verbose_run = .false.
 
 C--------------------------CHECK FOR IBUFFER.BUF ----------------------------C
@@ -541,21 +580,23 @@ C-----------------SET GLOBAL FLAGS TO THEIR DEFAULT VALUES ------------------C
 	   polfl(i) = .TRUE.
 	END DO
 	IF (nsta .EQ. 1) THEN
-	   IF ((collim(1).NE.7 .and. collim(1).NE. 15 .and. collim(1).NE. 60).OR.
-	1	(monobt1 .ne. 'CU311' .AND.
-	1	monobt1 .ne. 'GE311' .and.
-	2	monobt1 .ne. 'GE733' .AND.
-	2	monobt1 .ne. 'DUMMY')) THEN !use default
+c	   IF (((collim(1) .NE. 7) .and.
+c	1	(collim(1) .NE. 15) .and.
+c	1	(collim(1) .NE. 60)) .OR.
+c	1	((monobt1 .ne. 'CU311') .AND.
+c	1	(monobt1 .ne. 'GE311') .and.
+c	2	(monobt1 .ne. 'GE733') .AND.
+c	2	(monobt1 .ne. 'DUMMY'))) THEN !use default
 	      collim(1)=15
 	      monobt1='CU311'
-	   ENDIF		!need to use default values
-	   IF (collim(1).eq.7) THEN
-	      buffer(1:)=monobt1//'_7'//'.DAT'
-           ELSEIF (collim(1).eq.60) THEN
-              buffer(1:)=monobt1//'_60'//'.DAT'
-	   ELSE
-	      buffer(1:)=monobt1//'_15'//'.DAT'
-	   ENDIF
+c	   ENDIF		!need to use default values
+c	   IF (collim(1).eq.7) THEN
+c	      buffer(1:)=monobt1//'_7'//'.DAT'
+c          ELSE IF (collim(1).eq.60) THEN
+c              buffer(1:)=monobt1//'_60'//'.DAT'
+c	   ELSE
+c	      buffer(1:)=monobt1//'_15'//'.DAT'
+c	   ENDIF
 	   OPEN (UNIT= 1, FILE= HOMEDIR//buffer(1:13), STATUS= 'OLD', ACCESS= 
 	1	'SEQUENTIAL', FORM= 'FORMATTED', ERR= 120)
 	   READ (1, *) wavel, (eff(i), i= 1,scl), (zp(i), i= 1, scl)
@@ -623,7 +664,8 @@ C-----------------------INITIALIZE PRIVILEGED STUFF -------------------------C
 C           IF (nsta .eq. 4) trashmode = .true.
  	   IF (amscaler) CALL SCALERINIT
 	   IF (nsta .eq. 5) CALL RS232P_INIT
-	   IF (nsta .eq. -1 .or. nsta .eq. 2.or.nsta.eq.-11) CALL RS232G_INIT
+	   IF ((nsta .eq. -1 .or. nsta.eq.-11 ).and. term_line .gt. 0)
+	1	CALL RS232G_INIT
 	   IF (nsta .eq. -5) CALL ENET_INIT
    	   IF (system_type .ne. DEC) CALL UDPINIT
 	   IF (mot_line(PC).gt.0) THEN
@@ -642,7 +684,7 @@ C           IF (nsta .eq. 4) trashmode = .true.
 	      ENDIF
 	   ENDIF
 	   
-	   IF (nsta .eq. -5 .and. mot_line(ACSF).gt.0) CALL RS232EZ_INIT
+	   IF (mot_line(ACSF).gt.0) CALL RS232EZ_INIT
 	   CALL Init_Motors	!set up moving flags and name strings for motors
 	   Call logfile		!get name of new logfile
 	   makelog=.TRUE.	!default at startup

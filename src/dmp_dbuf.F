@@ -13,16 +13,22 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	use instr
 	use smg_prep
 	use histo
+	use asd
 	use dartz
 	use tc
 	use iso_c_binding
 	IMPLICIT     none
 	interface
+	   subroutine ISOTIME(timestamp)
+	1	bind(C,name="ISOTIME")
+           use iso_c_binding
+           character(kind=c_char), intent(out)::timestamp
+           end subroutine
 #include "c_libwait.h"
 	end interface
-	INTEGER*4    pts, typ, ee, raw /1/, dummy(3) /0,0,0/,right,ios, jr,
+	INTEGER*4    pts, typ, ee, raw /1/, dummy(3) /0,0,0/,right,ios, jr,sum2,
      1			status,notries/50/,openfai/30/ !from $fordef
-	INTEGER*4    i, j, m, maxtry, counts(37), which, ik, kpsd, lstr90
+	INTEGER*4    i, j, k, m, l, maxtry, counts(37), which, ik, kpsd, lstr90
 	REAL*4       npoints, e, qh, qk, ql, temp, min, tim,
      1	             zeropos/0./,field,posnow, Rdangl
 	CHARACTER*5  ch_raw /'''RAW'''/
@@ -30,6 +36,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	CHARACTER*10 str10(4)
 	CHARACTER*12 fname,outbuf,str12
 	CHARACTER*14 f_nam
+	CHARACTER*15 iso_time
 	CHARACTER*28 date
 	CHARACTER*3  fcap
 	CHARACTER*20 datum
@@ -37,6 +44,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	CHARACTER*90 str90,str90b
 	CHARACTER*1  tchar
 	CHARACTER*6  tstring
+	CHARACTER*4  str4
 	CHARACTER*8  str8
 	CHARACTER*9  str9
 	CHARACTER*7  str7(2)
@@ -235,6 +243,8 @@ c       write header
 	   ENDIF
 	   line(ik+1:ik+7)='  MIN  '
 	   ik=ik+7
+	   line(ik+1:ik+16)=' TIMESTAMP      '
+	   ik=ik+16
 	   line(ik+1:ik+12)='     COUNTS '
 	   ik=ik+12
 	   WRITE (UNIT=2,fmt='(a)')line(1:ik)
@@ -276,6 +286,7 @@ c       WRITE (UNIT=2,fmt='(a)')line(1:ik)
 C---------------------------DUMP INTENSITY DATA -----------------------------C
 	write(unit=str9,fmt='(I9)',iostat=ios)pts+1
 	call upcase(fcap,fname(10:12))
+	call ISOTIME(iso_time)  ! Get current ISO8601 timestamp
 	bstr(1:)=fcap(1:3)//':'//tab//'PT='//str9 !BT8:tab PT= and clear rest
 	lb = 17			!length of filled part of bstr
 	i=0
@@ -318,10 +329,12 @@ C---------------------------DUMP INTENSITY DATA -----------------------------C
 	   lb = lb + 11
 	   ik=ik+7
 	ENDIF
-	write(unit=line(ik+1:ik+7),fmt='(f7.2)',err=300) tim/60.
+	write(unit=line(ik+1:ik+7),fmt='(f7.3)',err=300) tim/60.
 	bstr(1:)=bstr(1:lb)//tab//'M='//line(ik+1:ik+7)
 	lb = lb + 10
 	ik=ik+7
+	write(unit=line(ik+1:ik+16),fmt='(1x,a14,1x)')iso_time
+	ik=ik+16
 	write(unit=line(ik+1:ik+12),fmt='(I12)',err=300) counts(2)
 	bstr(1:)=bstr(1:lb)//tab//'DATA='//line(ik+1:ik+12)
 	lb = lb + 18
@@ -357,6 +370,34 @@ C---------------------------DUMP INTENSITY DATA -----------------------------C
 	   IF (m.gt.2)write(2,fmt='(a)')outpsd(1:m-1)	
 	   bstr(1:)=bstr(1:lb)//outpsd(1:m-1)
 	   lb = lb + m-1
+	ELSEIF (USE_ASD .and. AIMPSD) THEN ! new detector,use all detectors,sum channels pairwise
+	   outpsd(1:)=' '
+	   kpsd = 2
+	   DO k= 1, 480
+		histodata(k)=0
+	   END DO
+	   DO j= 1, 20
+	 	DO k= 1, 480
+			sum2=asd_storage((j-1)*960+2*k-1)+asd_storage((j-1)*960+2*k)
+                        write(2, '(I4,X)', advance='no') sum2
+!			histodata(k)=histodata(k)+sum2
+		END DO
+!	histodata is used for live data display, now use all channels
+	 	DO k= 1, 960
+			sum2=0
+		 	DO l= 1, 4
+				sum2=sum2+asd_storage((j-1)*960+2*k-2+l)
+			END DO
+			histodata(k)=histodata(k)+sum2
+		END DO
+		write(2,*) ''
+	   END DO
+! this section of histodata contains counts as sum over individual tubes, use for live data?
+ 	DO k= 50, 430
+		WRITE(str4,fmt='(I4)') histodata(k)
+		bstr(1:)=bstr(1:lb)//str4
+		lb=lb+4
+	   END DO 
 	ENDIF
 	GOTO 400
  300	CALL Putcontr(' Error writing to data file')

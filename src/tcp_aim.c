@@ -1,7 +1,7 @@
 /*
  * Ethernet layer for connecting to AIM-style detectors over Ethernet
  *
- * Version = $Id$
+ * Version = $Id: tcp_aim.c,v 1.4 2017/01/18 21:57:02 nickm Exp $
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +21,6 @@
 
 int AIM_INIT() 
 {
-  int retn;
   int sockfd;
 
   /* Check SERVERHOST and make sure we can find the host */
@@ -31,7 +30,7 @@ int AIM_INIT()
   }
   net_close(sockfd);
   usleep(CMDWAIT);
-  return retn;
+  return 0;
 }
 
 int AIM_ARM()
@@ -92,7 +91,8 @@ int AIM_CLEAR()
 int AIM_DIMS(int * xdim, int * ydim)
 {
   int sockfd, retn;
-  long dims[2];
+  int prm;
+  unsigned int dims[1024];
   memset(dims,0,sizeof(dims));
   net_debug(debug);
   if (debug) puts("AIM_DIMS()\n");
@@ -100,39 +100,50 @@ int AIM_DIMS(int * xdim, int * ydim)
     fprintf(stderr,"Can't connect to detector server \"%s\"\n",SERVERHOST);
     return -1;
   }
-  
-  sendPKG(sockfd,OP_GET,GET_DIMS,0,0);
+  prm = PRM_DIMS;
+  if (debug) printf("AIM_DIMS: op=%d cmd=%d prm=%d\n",OP_CMD,CMD_GET,prm);
+  sendPKG(sockfd,OP_CMD,CMD_GET,&prm,sizeof(prm));
+  if (debug) printf("AIM_DIMS: get reply");
   retn = recvHIST(sockfd,dims,sizeof(dims));
   *xdim = dims[0];
   *ydim = dims[1];
   if (debug) printf("AIM_DIMS: xdim = %d, ydim = %d\n", *xdim, *ydim);
   
   net_close(sockfd);
-  usleep(CMDWAIT);
+  printf("AIMS_DIMS: exiting for debugging\n");
+
   return 0;
 }
 
-int AIM_XFER(long * hist, int *histsize)
+int AIM_XFER(int * hist, int * histsize)
 {
-  int blocksize=1024;
-  int tmpval;
-  int sockfd, retn;
+  int blocksize=1024,hsize;
+  int tmpval,tmp;
+  int sockfd, retn,i;
   struct timeval tv1, tv2,tvd;
   
   net_debug(debug);
-  if (debug) printf("AIM_XFER(temphist,%d)\n",*histsize);
-  memset(hist,0,*histsize*sizeof(histsize));
+  hsize=*histsize;
+  if (debug) printf("AIM_XFER(temphist,%d)\n",hsize);
+  memset(hist,0,hsize*sizeof(int));
   if ((sockfd = net_open(SERVERHOST,NULL,SERVERPORT)) <= 0) {
     fprintf(stderr,"Can't connect to detector server \"%s\"\n",SERVERHOST);
     return -1;
   }
 
-  tmpval = htonl(blocksize);
-  sendPKG(sockfd,OP_CMD,CMD_XFER, &tmpval,sizeof(blocksize));
+  tmp = blocksize*sizeof(int);
+  //tmp=hsize;
+  tmpval = htonl(tmp);
+  sendPKG(sockfd,OP_CMD,CMD_XFER, &tmpval,sizeof(tmpval));
   gettimeofday(&tv1,NULL);
-  if ((retn = recvHIST(sockfd,hist,*histsize*sizeof(int))) <= 0) {
+  if ((retn = recvHIST(sockfd,hist,hsize)) <= 0) {
     fprintf(stderr,"AIM_XFER(): Transfer unsuccessful [retn=%d]\n",retn);
   }
+  /* 
+  for (i=0;i<256;i++) {
+    printf("hist[%03d] = %d (0x%08lx)\n",i,hist[i],hist[i]);
+  }
+  */
   gettimeofday(&tv2,NULL);
   timersub(&tv2,&tv1,&tvd);
   if (debug) printf("Transfered %d longwords in %ld usec\n",retn,
@@ -142,7 +153,6 @@ int AIM_XFER(long * hist, int *histsize)
   usleep(CMDWAIT);
   return 0;
 }
-
 
 int int2uchar(long *input, unsigned char *output, int len) {
   float loval, hival, valrange;
@@ -171,7 +181,7 @@ int writeppm(char * outfile, unsigned char *input,
 	     int height, int width, int grey) {
   FILE *fp;
   unsigned char r, g, b;
-  int x, y, z, s, i,j,k;
+  int z, i,j,k;
 
   if ((fp = fopen(outfile,"w")) == NULL) return -1;
 
@@ -234,6 +244,7 @@ void AIM_SAVE(long * histo, int * nx, int * ny)
   if (debug) printf("AIM_SAVE(): Writing %s nx = %d ny = %d\n",rawfile,*nx,*ny);
   if ((fp = fopen(rawfile,"w")) == NULL) return;
   //  for (i=0;i<stlen;i++) {
+  fprintf(fp," %d %d\n",*nx,*ny);
   for (i=0;i<*nx;i++) {
     for (j=0;j<*nx;j++) {
       // k = j + i*(*ny);

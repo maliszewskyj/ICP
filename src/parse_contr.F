@@ -44,6 +44,7 @@ C   sc_reply, lreply,lcom in this version
 #include "c_gpiben.h"
 #include "c_center.h"
 #include "c_ez.h"
+#include "c_tcp_spec.h"
 	   subroutine ICOIL(itop,ibot,err) bind(C,name="ICOIL")
 	   use iso_c_binding
 	   real(c_float), intent(in)  :: itop
@@ -167,6 +168,8 @@ C---------------------------------- A: ALIGN, A+/- ----------------------------C
 	     use_asd=.true.
 	   ELSEIF (nsta.EQ.1)THEN
 	     autolim = .TRUE.
+	   ELSEIF (nsta.EQ.8)THEN
+		use_asd=.true.
 	   ELSE !not bt1 or ng5
 	     CALL Not_Implemented (*520)
 	   ENDIF
@@ -187,6 +190,8 @@ C---------------------------------- A: ALIGN, A+/- ----------------------------C
 	     use_asd = .FALSE.
 	     keep_rawasd=.FALSE.
 	   ELSEIF (nsta.EQ.-11)THEN
+	     use_asd = .FALSE.
+	   ELSEIF (nsta.EQ.8)THEN
 	     use_asd = .FALSE.
 	   ELSEIF (nsta.EQ.1)THEN
 	     autolim = .FALSE.
@@ -364,13 +369,39 @@ C------------------------------ C:  COL CT  CO CS-----------------------------C
 		    response = response(1:55) // ' Seconds: '// str9
 		 ENDIF
 	         CALL Putline_NT (contr, response)
-	      IF (PSD) THEN !write position sensitive detector data
+                 IF (dmpscl) THEN
+		    outpsd(1:)=' '
+		    kpsd = 2
+		    m = 0
+		    DO j = 1, 16
+		       ee = 1
+		       DO WHILE (counts(j) .GE. 10**ee)
+			  ee = ee + 1
+		       END DO
+		       m = kpsd + ee-1	    	     
+		       IF (m .GE. 80) THEN ! write string to file
+			  WRITE (2, '(a80)') outpsd(1:80)
+			  outpsd(1:)=' '
+			  kpsd = 2
+			  m = 2 + ee-1
+		       END IF
+!       Format was i20
+		       WRITE (UNIT= datum, FMT= '(i20)',IOSTAT=ios)
+	1		    counts(j)
+		       outpsd(kpsd:m) = datum(21-ee:20)
+		       m = m + 1
+		       outpsd(m:m) = ','
+		       kpsd = m + 1
+		    END DO
+		    IF (m.gt.2)CALL Putline_NF (contr, outpsd(1:m))
+                 ENDIF
+	      IF (PSD.or.(nsta.eq.8 .and. use_asd)) THEN !write position sensitive detector data
 	        outpsd(1:)=' '
 	        kpsd = 2
-	        DO i = 1, nocells/16 !groups of 16 cells
+	        DO i = 1, nocells/4  !groups of 16 cells
 	          hsum=0
-	          DO j = 1, 16 !sum adjacent 16 cells
-	            hsum=hsum+(histodata((i-1)*16+j))
+	          DO j = 1, 4  !sum adjacent 16 cells
+	            hsum=hsum+(histodata((i-1)*4 +j))
 	          ENDDO
 	          ee = 1
 	          DO WHILE (hsum .GE. 10**ee)
@@ -424,7 +455,7 @@ c	        IF (m.gt.2)write(2,fmt='(a)',iostat=ios)outpsd(1:m)
 	      response = 'Monitor set to: '// str13 //'   Count initiated!'
 	      CALL Reset_Display       !Reset NIM count display
 	      CALL RlyOff (4)                           ! Start display counter
-	      IF (nsta .EQ. -5 .AND. use_asd) CALL asd_on(1)
+	      !IF (nsta .EQ. -5 .AND. use_asd) CALL asd_on(1)
 	      CALL Count (preset)
 	      CALL Putline_NT (contr, response)
 	      CALL Scaler (counts)
@@ -804,7 +835,7 @@ c	   CALL Get_hwtable
 	        ELSE
 	          CALL DRY_X_BUF (j)
 	        ENDIF
-	      ELSE IF (str4(1:1) .EQ. 'D' .AND. nsta .EQ. 8.or.nsta.EQ.-5.or.nsta.eq.9.or.nsta.eq.-11) THEN
+	      ELSE IF (str4(1:1) .EQ. 'D' .AND. nsta .EQ. 8.or.nsta.EQ.-5.or.nsta.eq.4.or.nsta.eq.-11) THEN
 	        IF (move)THEN
 	          dryrun = .TRUE.
 	          CALL CLREF (contr_A)
@@ -976,8 +1007,7 @@ c$$$		    END IF
 	   IF (nsta .eq. 1 .and. .not. super .and.
      1		m .ne. 4 .and. m .ne. 3) CALL NoSuper (*520)
 	   IF (nsta .eq. -11 .and. .not. super .and.
-	1	.not.((m .ge. 1 .and. m .le. 8) .or.
-	1	(m .ge. 13 .and. m.le.16))) CALL NoSuper (*520)
+	1	(m.eq.7 .or. m.eq.9 .or. m.gt.10)) CALL NoSuper(*520)
 	   IF (.NOT. motfl(m)) THEN
 	      write(unit=str2,fmt='(i2)')m
 	      response = 'Motor no. '// str2 //
@@ -1423,9 +1453,10 @@ C---------------------------- I: INIM INIT ISET ISCAN INIF--------------------C
 	   IF (.NOT. priv) CALL NoPriv (*520)
 	   READ (UNIT= command(6:iend), FMT= *, ERR= 270) (multi(i), i= 1, 2)	   
 	   IF (nsta.eq.-5) THEN
-	      CALL ICOIL(multi(1),multi(2),ierr)
-	   ELSE
-	      response(1:) = 'ICOIL only implemented for NG5 SPINS'
+	      !CALL ICOIL(multi(1),multi(2),ierr)
+	   !ELSE
+	      !response(1:) = 'ICOIL only implemented for NG5 SPINS'
+	      response(1:) = 'ICOIL has been disabled'
 	      CALL Putline_NT (contr, response)
 	   ENDIF
 	   GOTO 520
@@ -1443,9 +1474,8 @@ C---------------------------- I: INIM INIT ISET ISCAN INIF--------------------C
 	   IF (m.lt.1 .or. m.gt.MAXMOTS)goto 270
 	   IF (nsta .eq. 1 .AND. .not. super .and. m .ne. 3 .and. 
      1		m .ne. 4 .and. m .ne. 15) CALL NoSuper (*520)
-	   IF (nsta .eq. -11 .AND. .not. super .and. .not.
-	1	((m .ge. 1 .and. m .le. 8) .or.
-	1	(m .ge. 13 .and. m .le. 16))) CALL NoSuper (*520)
+	   IF (nsta .eq. -11 .AND. .not. super .and. 
+	1	(m.eq.7 .or. m.eq.9 .or. m .gt. 10)) CALL NoSuper (*520)
 	   IF (nsta .EQ. -7 .AND. (m .lt. 12 .or. m .gt. 15))THEN
      	     IF (.NOT. Password_OK())CALL WrongPass(*520)
 	   ENDIF ! ng7 refl restrictions
@@ -2062,7 +2092,7 @@ C----- O:  OS ----------------------------------------------------------------C
 	
 C----- P: PSA PHA PDA PDM PMP PRS PA PC PD PI PL PM PQ PB PT PU PV PW P-/+ ---C
 C-------PZC--PHF--PFA--PFAMP--PFC--PTP-PVMC-PFS-PASD--PGAA+/- phdev-PASSWORD---C
-C-------PWIN PLAT PFLAGS
+C-------PWIN PLAT PFLAGS PRIVATE
 
  160    IF (command(2:3) .EQ. 'FC') THEN                ! Print Flipper calibr.
     	   OPEN (UNIT= 1, FILE= MOTORS_BUF, STATUS= 'OLD', ACCESS= 
@@ -2717,7 +2747,7 @@ c$$$		   END IF
 	2         '    Set point: ', sp
 	     ELSEIF (temptype.ne.4)THEN !all but lr400
                WRITE (UNIT= response(1:), 
-     1		FMT= '(a13, f7.3, a21, f7.3, a15, f7.3)',iostat=ios)
+     1		FMT= '(a13, f7.2, a21, f7.2, a15, f7.2)',iostat=ios)
 	1         'Sample Temp: ', st, '    Controller Temp: ', ct, 
 	2         '    Set point: ', sp
 	     ELSE !lr400
@@ -2752,12 +2782,22 @@ c$$$		   END IF
 	     write(unit=str14,fmt='(f14.4)',err=270)range
              WRITE (UNIT= response(1:), FMT= '(a,f13.4,a)',iostat=ios)
 	1         'Voltage: ', range
+	   ELSEIF (magtype .EQ. 9)THEN !hp power supply
+	     CALL RdField (range)
+	     write(unit=str14,fmt='(f14.4)',err=270)range
+             WRITE (UNIT= response(1:), FMT= '(a,f13.4,a)',iostat=ios)
+	1         'Current: ', range
 	   ELSEIF (magtype .EQ. 6)THEN
 	     CALL RdField (range)
 	     write(unit=str14,fmt='(f14.4)',err=270)range
              WRITE (UNIT= response(1:), FMT= '(a,f13.4,a)',iostat=ios)
 	1         'Field: ', range, '  tesla'
 	   ELSEIF (magtype .EQ. 7)THEN
+	     CALL RdField (range)
+	     write(unit=str14,fmt='(f14.4)',err=270)range
+             WRITE (UNIT= response(1:), FMT= '(a,f13.4,a)',iostat=ios)
+	1         'Units: ', range, '  '
+	   ELSEIF (magtype .EQ. 8)THEN
 	     CALL RdField (range)
 	     write(unit=str14,fmt='(f14.4)',err=270)range
              WRITE (UNIT= response(1:), FMT= '(a,f13.4,a)',iostat=ios)
@@ -2938,6 +2978,22 @@ c$$$		   END IF
 	      CALL Put_Help (help_line)
 	   IF (READEF(contr_A))CALL IcpAbort(command, *520)
 	   GOTO 520
+	ELSE IF (command(2:7) .EQ. 'RIVATE') THEN
+	   ! Work this as a toggle
+	   IF (.not.private) THEN
+	      private = .true.
+	      response(1:)='Data are marked as proprietary'
+	      call putline_nt (contr,response)
+	      response(1:)='and will NOT be backed up.'
+	      call putline_nt (contr, response)
+	   ELSE
+	      private = .false.
+	      response(1:)='Data are marked as NON proprietary'
+	      call putline_nt (contr,response)
+	      response(1:)='and will be backed up.'
+	      call putline_nt (contr, response)
+	   ENDIF
+	   GOTO 520
 	END IF
 	GOTO 270
 
@@ -3054,7 +3110,7 @@ C---------------------- R:  RI  RT  RQ RB  REL RM RA RF -ROCK-ROCKM-R+/---------
 	      ELSE IF (str4(1:1) .EQ. 'X' .AND. nsta .EQ. 8) THEN
 		  dryrun = .FALSE.
 	         CALL Run_X_Buf (j,dryrun,keep)
-	      ELSE IF (str4(1:1) .EQ. 'D' .AND. nsta .EQ. 8.OR. nsta.EQ.-5.or.nsta.eq.9.or.nsta.eq.-11) THEN
+	      ELSE IF (str4(1:1) .EQ. 'D' .AND. nsta .EQ. 8.OR. nsta.EQ.-5.or.nsta.eq.4.or.nsta.eq.-11) THEN
 		  dryrun = .FALSE.
 	         CALL Run_D_Buf (j,dryrun,keep)
 	      ELSE IF (str4(1:1) .EQ. 'R' .AND. nsta .EQ. -7) THEN
@@ -3447,9 +3503,8 @@ C  Now compute flipping ratios from pos1, pos2, and counts(2)
 	   IF (mot.lt.1 .or. mot.gt.MAXMOTS)goto 270
 	   IF (nsta .eq. 1 .AND. .not. super .and. mot .ne. 3 .and. 
      1		mot .ne. 4) CALL NoSuper (*520)
-	   IF (nsta .eq. -11 .AND. .not. super .and. .not.
-	1	((mot .ge. 1 .and. mot .le. 8) .or.
-	1	(mot .ge. 13 .and. mot .le. 16))) CALL NoSuper (*520)
+	   IF (nsta .eq. -11 .AND. .not. super .and.
+	1	(mot .eq. 7 .or. mot .eq. 9 .or. mot .gt. 10)) CALL NoSuper (*520)
            IF (np .GT. 1) THEN
 	     range = multi(2)				  ! (2) is angle range
 	   ELSE
@@ -3559,7 +3614,7 @@ c	   IF ( abs(mon) .LT. .5 ) mon = -1.
 
 
 C------------------ S: SETP STAT  SET  SM  ST  S-/+ SF SL--SC-SUPER ---------C
-C----------------------SETDEM--SETDEA----------------------------------------C
+C----------------------SETDEM--SETDEA--SR+/- --------------------------------C
 
  190    IF (command(2:4) .EQ. 'ETP') THEN     ! Set temperature controller
 	   READ (UNIT= command(5:5), FMT= '(i1)', ERR= 270) j
@@ -3801,9 +3856,8 @@ C----------------------SETDEM--SETDEA----------------------------------------C
 	   IF (m .le. 0 .or. m .gt. MAXMOTS)goto 270
 	   IF (nsta .eq. 1 .AND. .not. super .and. m .ne. 3 .and. 
      1		m .ne. 4) CALL NoSuper (*520)
-	   IF (nsta .eq. -11 .AND. .not. super .and. .not.
-	1	((m .ge. 1 .and. m .le. 8) .or.
-	1	(m .ge. 13 .and. m .le. 16))) CALL NoSuper (*520)
+	   IF (nsta .eq. -11 .AND. .not. super .and.
+	1	(m .eq. 7 .or. m .eq. 9 .or. m .gt. 10)) CALL NoSuper (*520)
  	   IF (.NOT. motfl(m)) THEN
 	      write(unit=str2,fmt='(i2)')m
 	      response = 'Motor no. '// str2 //
@@ -3912,9 +3966,23 @@ C----------------------SETDEM--SETDEA----------------------------------------C
 	     CALL CLREF (stop) !in case wait was aborted
 	   ENDIF !tcareful flag set
 	   GOTO 520
+        ELSE IF (command(2:3) .EQ. 'R+') THEN
+	   if (nsta .eq. -5) then
+	      dmpscl = .true. ! Dump list of scaler values in datafile
+	   endif
+	   response = 'Raw scaler values will be written to data files'
+	   CALL Putline_NT(contr,response)
+           GOTO 520
+        ELSE IF (command(2:3) .EQ. 'R-') THEN
+	   if (nsta .eq. -5) then
+	      dmpscl = .false. ! Do not dump list of scaler values in datafile
+	   endif
+	   response = 'Raw scaler values will be not written to data files'
+	   CALL Putline_NT(contr,response)
+	   GOTO 520
 	ELSE IF (command(2:2) .EQ. '+') THEN                ! Enable statistics
 	   IF (PSD .OR. USE_ASD) THEN
-     	    response= 'S+ not implemented with position sensitive detector'
+     	    response= 'S+ not implemented for position sensitive detector'
 	    CALL Putline_NT(contr,response) 
 	    GOTO 520
 	   ENDIF
@@ -3987,7 +4055,29 @@ C	       CALL Putline_NT (contr, response)
 	   response(1: ) = ' '
 	   CALL Putline_NT (contr, response)
 	   CALL Status_Line
-	   GOTO 520	      
+	   GOTO 520
+        ELSEIF (command(2:4) .EQ. 'PEC') THEN      ! Send command to *spec*
+	   ! IF (.NOT. priv) CALL NoPriv (*520)
+	   CALL SPEC_CONNECT
+	   ! Pull out command, send to spec, return response
+	   sc_command(1:) = ' '
+	   call downcase(sc_command,command(5:iend))
+	   m=iend-5+1
+	   ! Re-insert spaces
+	   DO i=1,m
+	      IF (sc_command(i:i) .eq.'_') THEN
+		 sc_command(i:i) = ' '
+	      END IF
+	   END DO
+	   longl(1:)=' '
+	   
+	   CALL SPEC_CMD(sc_command,m,ierr,longl,l)
+	   CALL SPEC_DISCONNECT
+	   IF (ierr.ne.0) THEN
+	      CALL Putcontr_NT('SPEC ERROR')
+	   ENDIF
+	   CALL Putline_NT(contr,longl)
+	   GOTO 520
 	ELSE IF (command(2:3) .EQ. 'AY') THEN            !Say
 	   command(1:)=command(4:)
 	   CALL Putcontr_NT(command)
@@ -4349,9 +4439,8 @@ C---------------------------------- Z: Zi ------------------------------------C
 	   IF (j .lt. 1 .or. j.gt.MAXMOTS) goto 270
 	   IF (nsta .eq. 1 .AND. .not. super .and. j .ne. 3 .and. 
      1		j .ne. 4) CALL NoSuper (*520)
-	   IF (nsta .eq. -11 .AND. .not. super .and. .not.
-	1	((j .ge. 1 .and. j .le. 8) .or.
-	1	(j .ge. 13 .and. j .le. 16))) CALL NoSuper (*520)
+	   IF (nsta .eq. -11 .AND. .not. super .and.
+	1	(j .eq. 7 .or. j .eq. 9 .or. j .gt. 10)) CALL NoSuper (*520)
 	   IF (.NOT. motfl(j)) THEN
 	      write(unit=str2,fmt='(i2)')j
 	      response = 'Motor no. '// str2 //

@@ -16,6 +16,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	end interface
 
 	LOGICAL       error
+	INTEGER*4     ierr
 	CHARACTER*30  outstr
 	INTEGER*4     lstr
 	integer*2 mode,ia(131072),ib
@@ -51,7 +52,7 @@ C------- Do DMA transfer of data
 	mode	=	16
 C<<<<<FIX ME
 	IF (gpibenet) THEN
-C	   CALL GPIBEN_RD(ba,ntrans,iad,error)
+C	   CALL GPIBEN_RD_ASD(ia,ntrans,iad,ierr)
 	ELSE
 C	   Call GPIBCT_RDBLK(ba,ntrans,iad,error)
 	ENDIF
@@ -68,6 +69,7 @@ C------- Pull out data from bytes returned & place in asd_rawdata
 		b(1)	=	ba(iad)
 		b(2)	=	ba(iad+1)
 		asd_rawdata(i,j) = asd_rawdata(i,j) + ib
+		asd_storage(iad) = asd_rawdata(i,j)
 	  enddo
 	enddo
 

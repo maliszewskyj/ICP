@@ -16,6 +16,7 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	use instr
 	use smg_prep
 	use histo
+	use asd
 	use tc
 	use dartz
 	use iso_c_binding
@@ -324,6 +325,35 @@ C---------------------------DUMP INTENSITY DATA -----------------------------C
 	   IF (m.gt.2)write(2,fmt='(a)')outpsd(1:m-1)	
 	   bstr(1:)=bstr(1:lb)//outpsd(1:m-1)
 	   lb = lb + m-1
+	ELSEIF (USE_ASD .and. AIMPSD) THEN
+	   outpsd(1:)=' '
+	   kpsd = 2
+	   DO j= 1, asd_xdim * asd_ydim
+	      ee = 1
+	      DO WHILE (asd_storage(j) .GE. 10**ee)
+		 ee = ee + 1
+	      END DO
+	      m = kpsd + ee-1
+	      IF (m .GE. 80) THEN ! write string to file
+		 WRITE (2, '(a80)') outpsd(1:80)
+		 outpsd(1:) = ' '
+		 kpsd = 2
+		 m = 2 + ee-1
+	      END IF
+	      WRITE (UNIT= datum, FMT= '(i20)',IOSTAT=ios) asd_storage(j)
+	      outpsd(kpsd:m) = datum(21-ee:20)
+	      m = m + 1
+	      IF (mod(j,asd_xdim).eq.0) THEN
+		 outpsd(m:m) = ';'
+	      ELSE
+		 outpsd(m:m) = ','
+	      ENDIF
+	      kpsd = m + 1
+	   END DO
+	   IF (m.gt.2)THEN	! Write what remains
+	      !write(2,fmt='(a)')outpsd(1:m-1)	
+	      write(2,fmt='(a)')outpsd(1:m)	
+	   ENDIF
 	ENDIF
 	GOTO 400
  300	CALL Putcontr(' Error writing to data file')

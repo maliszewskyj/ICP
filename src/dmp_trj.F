@@ -15,18 +15,24 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	use instr
 	use smg_prep
 	use histo
+	use asd
 	use tc
 	use dartz
 	use trj
 	use iso_c_binding
 	IMPLICIT NONE
 	interface
+	   subroutine ISOTIME(timestamp)
+	1	bind(C,name="ISOTIME")
+           use iso_c_binding
+           character(kind=c_char), intent(out)::timestamp
+           end subroutine
 #include "c_libwait.h"
 	end interface
 
 	INTEGER*4    pts, typ, ee, raw /1/, dummy(3) /0,0,0/,right,ios, jr,
      1			status,notries/50/,openfai/30/ !from $fordef
-	INTEGER*4    i, j, m, maxtry, counts(37), which, ik, kpsd, lstr90
+	INTEGER*4    i, j, m, k,l,maxtry, counts(37), which, ik, kpsd, lstr90, sum2
 	REAL*4       npoints, e, qh, qk, ql, temp, min, tim,
      1	             zeropos/0./,field,posnow, Rdangl
 	REAL*4       xbuf_hf, xbuf_tmp, xbuf_it, xbuf_ihf
@@ -35,11 +41,14 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	CHARACTER*10 str10(4)
 	CHARACTER*12 fname,outbuf,str12
 	CHARACTER*14 f_nam
+	CHARACTER*15 iso_time
+	CHARACTER*3  fcap
 	CHARACTER*28 date
 	CHARACTER*20 datum
 	CHARACTER*80 line, outpsd
 	CHARACTER*90 str90,str90b
 	CHARACTER*1  tchar
+	CHARACTER*4  str4
 	CHARACTER*6  tstring
 	CHARACTER*8  str8
 	CHARACTER*9  str9
@@ -120,7 +129,8 @@ c         write header
 	      ENDIF		!jr ne 0
 	   ENDDO		!j = 1,6
 	   write(unit=str9,fmt='(I9)',iostat=ios)npts
-	   bstr(1:)=fname(10:12)//':START'//tab//'NPTS='//str9//
+	   call upcase(fcap,fname(10:12))
+	   bstr(1:)=fcap//':START'//tab//'NPTS='//str9//
      1		tab//'FILE='//str90(1:right)//
      1		fname//tab//vstr(1:lv)//tab//comments(1:50)
 	   lb = 78+right+lv	!length of filled part of bstr
@@ -199,6 +209,8 @@ C	1           angles(j,1), angles(j,npts)
 	   ik = ik+1
 	   line(ik+1:ik+7)='  MIN  '
 	   ik=ik+7
+	   line(ik+1:ik+16)=' TIMESTAMP      '
+	   ik=ik+16
 	   line(ik+1:ik+12)='     COUNTS '
 	   ik=ik+12
 	   WRITE (UNIT=2,fmt='(a)')line(1:ik)
@@ -229,7 +241,9 @@ C	1           angles(j,1), angles(j,npts)
 
 C--------------------------- DUMP INTENSITY DATA -----------------------------C
 	write(unit=str9,fmt='(I9)',iostat=ios)pts+1
-	bstr(1:)=fname(10:12)//':'//tab//'PT='//str9 !BT8:tab PT= and clear rest
+	call upcase(fcap,fname(10:12))
+	call ISOTIME(iso_time)  ! Get current ISO8601 timestamp
+	bstr(1:)=fcap//':'//tab//'PT='//str9 !BT8:tab PT= and clear rest
 	lb = 17			!length of filled part of bstr
 	
 	i=0
@@ -261,10 +275,12 @@ c       1	                 angles(j,pts)
 	   ENDIF		! .lt. 6
 	ENDDO
 	ik = ik+1
-	write(unit=line(ik+1:ik+7),fmt='(f7.2)',err=300) tim/60.
+	write(unit=line(ik+1:ik+7),fmt='(f7.3)',err=300) tim/60.
 	bstr(1:)=bstr(1:lb)//tab//'M='//line(ik+1:ik+7)
 	lb = lb + 10
 	ik=ik+7
+	write(unit=line(ik+1:ik+16),fmt='(1x,a14,1x)')iso_time
+	ik=ik+16
 	write(unit=line(ik+1:ik+12),fmt='(I12)',err=300) counts(2)
 	bstr(1:)=bstr(1:lb)//tab//'DATA='//line(ik+1:ik+12)
 	lb = lb + 18
@@ -301,6 +317,30 @@ c       1	                 angles(j,pts)
 	      bstr(1:)=bstr(1:lb)//outpsd(1:m-1)
 	      lb = lb + m-1
 	   ENDIF
+        ELSEIF (use_asd .and. aimpsd) THEN
+	   !print *,'--->asd_xdim=',asd_xdim,' asd_ydim=',asd_ydim
+	   outpsd(1:)=' '
+	   kpsd = 2
+	   DO j= 1, 20
+	 	DO k= 1, 480
+			sum2=asd_storage((j-1)*960+2*k-1)+asd_storage((j-1)*960+2*k)
+                        write(2, '(I4,X)', advance='no') sum2
+		END DO
+!	histodate is used for live data display, only channels 50 to 430 contain useful data
+	 	DO k= 50, 430
+			sum2=0
+		 	DO l= 1, 4
+				sum2=sum2+asd_storage((j-1)*960+2*k-2+l)
+			END DO
+			histodata(k)=histodata(k)+sum2
+		END DO
+		write(2,*) ''
+	   END DO
+           DO k= 50, 430
+		WRITE(str4,fmt='(I4)') histodata(k)
+		bstr(1:)=bstr(1:lb)//str4
+		lb=lb+4
+	   END DO 
 	ENDIF
 	GOTO 400
  300	CALL Putcontr(' Error writing to data file')

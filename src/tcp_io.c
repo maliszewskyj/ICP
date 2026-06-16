@@ -1,4 +1,4 @@
-static char cvsid[] = "$Id$";
+static char cvsid[] = "$Id: tcp_io.c,v 1.4 2004/04/30 15:12:34 pheiffer Exp $";
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -21,7 +21,7 @@ struct servent     tcp_serv_info; /* from getservbyname() */
 struct hostent     tcp_host_info; /* from gethostbyname() */
 
 /* static int sockfd = -1; */
-static int traceflag=0;
+static int traceflag=2;
 static int to_sec=10;
 static char mesg[MAXBUF];
 
@@ -157,6 +157,7 @@ tcp_open(char * host, char * service, int port) {
     close(fd);
     return -1;
   }
+  printf("Connection successful.\n");
 
   return fd; /* OK */
 }
@@ -235,14 +236,15 @@ net_listen(int sockfd) {
 /* Wrapper to turn on debugging */
 void
 net_debug (int debug) {
-  traceflag = debug;
+  traceflag = (debug) ? 1 : 0;
 }
 
 int
 sendPKG(int sockfd, int opcode, int prm, void * data, int ldata) 
 {
   unsigned char * ptr;
-  int retn, n;
+  unsigned int lwd;
+  int retn, n,i,nlwd;
 
   bzero(mesg,sizeof(mesg)); /* Clear out data */
   ptr = &mesg[0];
@@ -258,12 +260,12 @@ sendPKG(int sockfd, int opcode, int prm, void * data, int ldata)
 
   /* Write data as-is */
   if (data != NULL) { 
-    memcpy(ptr,data,ldata); 
-    ptr += ldata;
+      memcpy(ptr,data,ldata); 
+      ptr += ldata;
   }
   if ((opcode == OP_CMD) || (opcode == OP_ERR)) *ptr = EOS; /* End of pkg */
 
-  if (traceflag&2) {
+  if (traceflag) {
     printf("SendPKG:"); phex((char *)mesg,n);
   }
   if ((retn = write(sockfd,mesg,n)) != n) err_dump("send_PKG:write");
@@ -285,6 +287,7 @@ recvPKG(int sockfd, int * len, int * opcode, int * prm, void * data) {
     return -1;
   }
   if (n==0) {
+    *opcode=OP_NOP;
     if (traceflag) { printf("recvPKG: timed out\n"); }
     return -2; /* timeout */
   }
@@ -308,8 +311,8 @@ recvPKG(int sockfd, int * len, int * opcode, int * prm, void * data) {
     memcpy(data, ptr, (*len));
   }
 
-  if (traceflag&2) {
-    printf("recvPKG:"); phex((char *)mesg,*len + 2*sizeof(uint32_t));
+  if (traceflag) {
+    //printf("recvPKG:"); phex((char *)mesg,*len + 2*sizeof(uint32_t));
     printf("recvPKG: OP = %d PRM = %d len = %d recvlen = %d\n",
 	   *opcode, *prm, *len, n);
   }
@@ -375,7 +378,7 @@ sendHIST(int sockfd, int * hist, int lhist, int blocksize) {
  *    Just treat the matrix as a block of storage
  */
 int
-recvHIST(int sockfd, long * hist, int size) {
+recvHIST(int sockfd, int * hist, int size) {
   int opcode, blockno,len, i, retn, recv_len;
   long * data_ptr;
   uint32_t idata[MAXBLOCK];

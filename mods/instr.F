@@ -5,6 +5,7 @@
       CHARACTER*1  insp1, insp1b
       CHARACTER*2  insp2
       CHARACTER*3  insp3
+      CHARACTER*3  extension
       INTEGER(c_int),bind(C,name="nsta")::nsta         ! station number
       INTEGER*4    mots         ! number of motors
       INTEGER*4    mon_add      ! address of down-count module
@@ -29,8 +30,8 @@
       INTEGER(c_int),bind(C,name="tmp_line")::tmp_line     ! RS232-line for temp-control
       INTEGER(c_int),bind(C,name="mag_line")::mag_line     ! RS232/GPIB-ID for magnet-control
       INTEGER(c_int),bind(C,name="term_line")::term_line    ! RS232-line for priv terminal
-C      CHARACTER(kind=c_char,len=5) , bind(C,name="monobt1")::monobt1      ! bt1 mon used: cu311,cu220,si531
-      CHARACTER*5 monobt1 ! bt1 mon used: cu311,cu220,si531
+C     CHARACTER(kind=c_char,len=1) , bind(C,name="monobt1")::monobt1(5)      ! bt1 mon used: cu311,cu220,si531
+      CHARACTER*5  monobt1
       INTEGER*4    base(MAXMOTS)
       INTEGER*4    ramp(MAXMOTS)
       INTEGER*4    top(MAXMOTS)
@@ -89,6 +90,7 @@ C      CHARACTER(kind=c_char,len=5) , bind(C,name="monobt1")::monobt1      ! bt1
       LOGICAL     motfl(MAXMOTS)         ! motor mask
       LOGICAL     polfl(8)         ! power supply mask
       LOGICAL     rockfl        ! set if motor rocks while counting
+      LOGICAL     dmpscl        ! dump raw scaler values
       INTEGER*4   timer_id      ! Timer request number
       INTEGER*4   camerr        ! Number in local event flag cluster
       INTEGER*4   hdw_event     ! Number in local event flag cluster
@@ -108,7 +110,9 @@ C      CHARACTER(kind=c_char,len=5) , bind(C,name="monobt1")::monobt1      ! bt1
       REAL*4 duration
       PARAMETER (dec=1)
       PARAMETER (linux=2)
-      LOGICAL  vmedata,trashmode,trashmove,trackmoves,amscaler
+      LOGICAL  vmedata,trashmove,trackmoves,amscaler
+      LOGICAL  private
+      LOGICAL (kind=c_bool) , bind(C,name="trashmode")::trashmode
       LOGICAL gpibenet
       LOGICAL aimpsd
       CHARACTER*12 cfgdir

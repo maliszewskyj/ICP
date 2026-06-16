@@ -20,18 +20,18 @@ TAR  = /bin/tar
 CPPOPTS = -P -traditional
 
 #FFLAGS= -g -ffixed-line-length-132 -M$(MDIR) -I$(MDIR)
-FFLAGS= -g -ffixed-line-length-132 -fall-intrinsics -I$(MDIR)
+FFLAGS= -g -ffixed-line-length-132 -fintrinsic-modules-path $(MDIR) -I$(MDIR)
 COPTS = -g -Wall
 
-LIBS = -lcurses -lreadline -lm 
-
+LIBS = -lcurses -lreadline -lm  -Lefence
+# Previously needed nienet/cib.o
 COBJ = serial.o rs232_cnf.o rs232_acs.o rs232_x.o lxgetstring.o ttycatch.o \
 	udpbroad.o libwait.o amscaler.o vmectrl.o envhome.o \
 	rs232_tc.o chkpriv.o fansres.o rs232_hc.o rs232_gpib.o \
 	globfile.o trace.o rs232_pc.o \
 	tcp_io.o tcp_aim.o ez_m.o pico.o pi.o zeta.o \
 	icoil.o center.o \
-	enet_gpib.o 
+	enet_gpib.o tcp_spec.o
 
 IOBJ = smgini.o readef.o  cluster64.o \
 	icpabort.o addlog.o align_peak.o \
@@ -49,7 +49,7 @@ IOBJ = smgini.o readef.o  cluster64.o \
 	dry_r_buf.o dry_x_buf.o \
 	exam_peak.o file_name.o find_file.o \
 	findhalfh.o find_peak.o fit1gauss.o \
-	focus.o fz.o geometry.o dtrig.o \
+	fitsine.o focus.o fz.o geometry.o dtrig.o \
 	get_asctime.o getdir.o getval.o \
 	gobroad.o gofind_peak.o \
 	goodbye.o hiber.o howlong.o howl_seq.o \
@@ -75,7 +75,7 @@ IOBJ = smgini.o readef.o  cluster64.o \
 	simulate_mrat.o stampfile.o stamplog.o \
 	status_file.o status_line.o \
 	test_ststcs.o time_com.o type_file.o \
-	upcase.o valid_words.o verify_motors.o \
+	upcase.o downcase.o valid_words.o verify_motors.o \
 	dartz.o writefit.o \
 	wrongpass.o tconfig.o \
 	init_motors.o drive.o \
@@ -121,8 +121,7 @@ IOBJ = smgini.o readef.o  cluster64.o \
 	fetch_tofile.o restore_fromfile.o dmp_dbuf.o dry_d_buf.o  \
 	run_dpolar.o run_d_buf.o rdkeith.o \
 	init_asd.o rd_trj.o run_trj.o dmp_trj.o wait_temp.o \
-	ezdrive.o picodrive.o \
-	fitsine.o
+	ezdrive.o picodrive.o 
 
 FLAM =  fndlam.o cnan.o cnt.o istop.o lamzer.o lohi.o peakpo.o
 FLAM += scale.o smoth.o rdfiles.o hdwinit.o logfile_fl.o

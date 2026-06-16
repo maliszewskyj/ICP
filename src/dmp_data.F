@@ -31,6 +31,10 @@ C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++C
 	   real(c_float),  intent(in)::defrac
 	   real(c_float),  intent(out)::vector(*)
 	   end subroutine
+	   subroutine ISOTIME(timestamp)
+           use iso_c_binding
+           character(kind=c_char), intent(out)::timestamp
+           end subroutine
 #include "c_libwait.h"
 	end interface
 	INTEGER*4    pts, typ, ee, raw /1/, dummy(3) /0,0,0/,right,ios,
@@ -79,19 +83,19 @@ C---------------------------INITIALIZE DATA FILE ----------------------------C
 	   Call Getdir(str90,right)
 c       add filename to monitor.rec
            maxtry = 0
-	   OPEN (UNIT=2, FILE= MONITOR_REC, FORM= 'FORMATTED', 
-	1	ACCESS= 'APPEND', STATUS='UNKNOWN',IOSTAT=ios)
-	   DO WHILE (ios .EQ. openfai .AND. maxtry .LT. notries)
-	      CALL libwait(.2,status)
 	      OPEN (UNIT=2, FILE= MONITOR_REC, FORM= 'FORMATTED', 
 	1	   ACCESS= 'APPEND', STATUS='UNKNOWN',IOSTAT=ios)
-	      maxtry = maxtry+1
-	   ENDDO
-	   IF (ios .EQ. 0)THEN
-	      write(unit=2,fmt='(1x,a,1x,a,1x,a)',err=2209)
-	1	   date(1:17),' Created: ',str90(1:right)//fname
- 2209	      close(unit=2,err=2210)
-	   ENDIF
+	      DO WHILE (ios .EQ. openfai .AND. maxtry .LT. notries)
+		 CALL libwait(.2,status)
+		 OPEN (UNIT=2, FILE= MONITOR_REC, FORM= 'FORMATTED', 
+	1	      ACCESS= 'APPEND', STATUS='UNKNOWN',IOSTAT=ios)
+		 maxtry = maxtry+1
+	      ENDDO
+	      IF (ios .EQ. 0)THEN
+		 write(unit=2,fmt='(1x,a,1x,a,1x,a)',err=2209)
+	1	      date(1:17),' Created: ',str90(1:right)//fname
+ 2209		 close(unit=2,err=2210)
+	      ENDIF
 
 c       write header
  2210	   OPEN (UNIT=2, FILE= fname, FORM= 'FORMATTED',
@@ -748,10 +752,8 @@ C       BOGUS
 		    lb = lb + m-1
 		 ENDIF
 	      ENDIF
-	      IF (vmedata.and.nsta.ne.-11
-	1	   .and.nsta.ne.9
-	1	   .and.nsta.ne.-1
-	2	   .and.nsta.ne.-5) THEN
+	      IF (vmedata .and. dmpscl .or.
+	1	   (nsta.eq.4 .and.trashmode)) THEN
 		 outpsd(1:)=' '
 		 kpsd = 2
 		 m = 0
@@ -1122,7 +1124,35 @@ CvvvvvvvvvvvvvvNICK ADD ASD
 		    write(2,fmt='(a)')outpsd(1:m-1)	
 		 ENDIF
 	      ENDIF
-C^^^^^^^^^^^^^^NICK ADD ASD 
+C^^^^^^^^^^^^^^NICK ADD ASD
+ 	      IF (vmedata .and. dmpscl) THEN
+		 outpsd(1:)=' '
+		 kpsd = 2
+		 m = 0
+		 DO j = 1, 37
+		    ee = 1
+		    DO WHILE (counts(j) .GE. 10**ee)
+	               ee = ee + 1
+		    END DO
+		    m = kpsd + ee-1	    	     
+		    IF (m .GE. 80) THEN	! write string to file
+		       WRITE (2, '(a80)') outpsd(1:80)
+		       outpsd(1:)=' '
+	               kpsd = 2
+		       m = 2 + ee-1
+		    END IF
+! Format was i20
+		    WRITE (UNIT= datum, FMT= '(i20)',IOSTAT=ios)
+	1		 counts(j)
+		    outpsd(kpsd:m) = datum(21-ee:20)
+		    m = m + 1
+		    outpsd(m:m) = ','
+		    kpsd = m + 1
+		 END DO
+		 IF (m.gt.2)THEN
+		    write(2,fmt='(a)')outpsd(1:m-1)	
+		 ENDIF
+	      ENDIF
 	   ELSE			! Trash scan
 
 	      i = NINT(tbuf%pts)
@@ -1178,7 +1208,7 @@ C^^^^^^^^^^^^^^NICK ADD ASD
 	      WRITE(UNIT=str12,fmt='(I12)',IOSTAT=ios)counts(2)
 	      bstr(1:)=bstr(1:lb)//tab//'DATA='//str12
 	      lb = lb + 18
-	      IF (vmedata) THEN
+	      IF (vmedata.and.(nsta.eq.4 .and. trashmode)) THEN
 		 outpsd(1:)=' '
 		 kpsd = 2
 		 m = 0
